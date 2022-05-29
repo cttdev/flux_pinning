@@ -1,4 +1,3 @@
-from turtle import position
 from manim import *
 
 
@@ -157,3 +156,103 @@ class Repulsion(Scene):
         self.play(stick_bar_magnet)
 
         self.wait()
+
+def represent_current(current_value, scene, wire: Line, left_end: Dot, right_end: Dot):
+    number_of_current_dots = 10
+
+    current_spacing = wire.get_length() / number_of_current_dots
+
+    def move_current(dot: Dot):
+        dot.shift(current_value() * RIGHT)
+
+        if dot.get_center()[0] >= wire.get_end()[0]:
+            dot.move_to(wire.get_start())
+
+    z_index = left_end.z_index
+    left_end.set_z_index(z_index + 1)
+    right_end.set_z_index(z_index + 1)
+
+    dot_group = VGroup()
+    for i in range(number_of_current_dots):
+        dot = Dot(
+                color=BLUE
+            ).move_to(
+                wire.get_start() + (i+1) * current_spacing * RIGHT
+            ).set_z_index(
+                z_index
+            ).add_updater(move_current)
+
+        dot_group.add(dot)
+
+    scene.play(FadeIn(dot_group))
+    
+
+class CurrentInWire(Scene):
+    def construct(self):
+        scene_label = Text("Normal Metal").shift(3 * DOWN)
+        self.play(Create(scene_label))
+
+        length = 8
+        
+        wire = Line(length/2 * LEFT, length/2 * RIGHT)
+        left_end = Dot(length/2 * LEFT)
+        right_end = Dot(length/2 * RIGHT)
+
+        wire.shift(1.5 * DOWN)
+        left_end.shift(1.5 * DOWN)
+        right_end.shift(1.5 * DOWN)
+
+        self.play(Create(wire))
+
+        make_wire_ends = AnimationGroup(
+            FadeIn(left_end),
+            FadeIn(right_end)
+        )
+
+        self.play(make_wire_ends)
+
+        self.wait()
+
+        resistance_value = ValueTracker(3)
+        resistance_value.set_value(3)
+        tracking_current = False
+        def get_current():
+            if not tracking_current:
+                return 0.0
+            else:
+                return (0.2 * 0.1) / resistance_value.get_value() # I = V / R
+
+        represent_current(get_current, self, wire, left_end, right_end)
+
+        wire_label = MathTex("I = \\frac{V}{R}").next_to(wire, LEFT)
+
+        self.play(Create(wire_label))
+
+        self.wait()
+
+        ax = Axes(
+            x_range=[0, 3, 0.5], y_range=[0, 3, 0.5], x_length=5, y_length=3, axis_config={"include_tip": False}
+        )        
+        ax.shift(1.5 * UP)
+        labels = ax.get_axis_labels(Text("Temprature").scale(0.4), Text("Resistivity").scale(0.4))
+
+        def func(x):
+            return 1 + (0.4 * x)**2 # Sketchy Plot
+
+        graph = ax.plot(func, color=MAROON)
+
+        initial_point = [ax.coords_to_point(resistance_value.get_value(), func(resistance_value.get_value()))]
+        dot = Dot(point=initial_point)
+        dot.add_updater(lambda x: x.move_to(ax.c2p(resistance_value.get_value(), func(resistance_value.get_value()))))
+
+        self.play(Create(ax))
+        self.play(Create(labels))
+        self.play(Create(graph))
+        self.play(Create(dot))
+
+        tracking_current = True
+        self.play(resistance_value.animate.set_value(0.1), run_time=5)
+
+        # self.wait()
+
+        self.play(resistance_value.animate.set_value(3), run_time=5)

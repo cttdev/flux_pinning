@@ -224,7 +224,7 @@ class CurrentInWire(Scene):
             if not tracking_current:
                 return 0.0
             else:
-                return (0.2 * 1.0016) / func(temprature_value.get_value()) # I = V / R
+                return (0.2 * func(0.1)) / func(temprature_value.get_value()) # I = V / R
 
         represent_current(get_current, self, wire, left_end, right_end)
 
@@ -238,7 +238,7 @@ class CurrentInWire(Scene):
             x_range=[0, 3, 0.5], y_range=[0, 3, 0.5], x_length=5, y_length=3, axis_config={"include_tip": False}
         )        
         ax.shift(1.5 * UP)
-        labels = ax.get_axis_labels(Text("Temprature").scale(0.4), Text("Resistivity").scale(0.4))
+        labels = ax.get_axis_labels(Text("Temperature").scale(0.4), Text("Resistivity").scale(0.4))
 
         graph = ax.plot(func, color=MAROON)
 
@@ -277,16 +277,9 @@ class CurrentInSuperconductor(Scene):
 
         self.wait()
 
-        resistance_value = ValueTracker(3)
-        resistance_value.set_value(3)
+        temprature_value = ValueTracker(3)
+        temprature_value.set_value(3)
         tracking_current = False
-
-        dot = Dot(color=BLUE).move_to(wire_loop.get_center() + wire_loop.radius * UP)
-
-        self.play(Create(dot))
-
-        self.wait()
-
 
         ax = Axes(
             x_range=[0, 3, 0.5], y_range=[0, 3, 0.5], x_length=5, y_length=3, axis_config={"include_tip": False}
@@ -299,14 +292,45 @@ class CurrentInSuperconductor(Scene):
             return 1.5 + (0.4 * x)**3 # Sketchy Plot
 
         nonlinear_graph_section = ax.plot(func, color=GOLD, x_range=[0.5, 3])
-
         t_label = ax.get_T_label(x_val=0.5, graph=nonlinear_graph_section, line_color=GOLD, label=Tex("$T_{C}$"))
-
         linear_graph_section = ax.plot(lambda x: 0.001, color=GOLD, x_range=[0, 0.5])
+        
+        current_dot = Circle(color=BLUE, radius=0.08, fill_opacity=1).move_to(wire_loop.get_center() + wire_loop.radius * UP)
+        current_dot.save_state()
 
-        initial_point = [ax.coords_to_point(resistance_value.get_value(), func(resistance_value.get_value()))]
+        self.play(Create(current_dot))
+
+        self.wait()
+
+        wire_label = MathTex("I = \\frac{V}{R}").next_to(wire, 1.5 * LEFT)
+
+        self.play(Write(wire_label))
+
+        self.wait()
+
+        def current_dot_position(dot: Dot):
+            if temprature_value.get_value() <= 0.5:
+                    dot.become(Circle(radius=0.7, color=BLUE, fill_opacity=0).move_to(wire_loop.get_center()))
+            else:
+                if dot.get_center()[0] == wire_loop.get_center()[0]:
+                    dot.become(Circle(color=BLUE, radius=0.08, fill_opacity=1)).move_to(wire_loop.get_center() + wire_loop.radius * UP)
+
+                if tracking_current:
+                    dot.rotate(1.0 / func(temprature_value.get_value()), about_point=wire_loop.get_center())
+
+        current_dot.add_updater(current_dot_position)
+
+        self.wait()
+
+        initial_point = [ax.coords_to_point(temprature_value.get_value(), func(temprature_value.get_value()))]
         dot = Dot(point=initial_point)
-        dot.add_updater(lambda x: x.move_to(ax.c2p(resistance_value.get_value(), func(resistance_value.get_value()))))
+        def tracker_dot_position(x: Dot):
+            if ax.p2c(x.get_center())[0] >= 0.5:
+                x.move_to(ax.c2p(temprature_value.get_value(), func(temprature_value.get_value())))
+            else:
+                x.move_to(ax.c2p(temprature_value.get_value(), 0.001))
+
+        dot.add_updater(tracker_dot_position)
 
         self.play(Create(ax))
         self.play(Write(labels))
@@ -314,5 +338,11 @@ class CurrentInSuperconductor(Scene):
         self.play(Create(t_label))
         self.play(Create(linear_graph_section))
         self.play(Create(dot))
+
+        self.wait()
+
+        tracking_current = True
+        self.play(temprature_value.animate.set_value(0.1), run_time=5)
+        self.play(temprature_value.animate.set_value(3), run_time=5)
 
         self.wait()

@@ -190,7 +190,7 @@ def represent_current(current_value, scene, wire: Line, left_end: Dot, right_end
 class CurrentInWire(Scene):
     def construct(self):
         scene_label = Text("Normal Metal").shift(3 * DOWN)
-        self.play(Create(scene_label))
+        self.play(Write(scene_label))
 
         length = 8
         
@@ -213,20 +213,24 @@ class CurrentInWire(Scene):
 
         self.wait()
 
-        resistance_value = ValueTracker(3)
-        resistance_value.set_value(3)
+        def func(x):
+            return 1 + (0.4 * x)**2 # Sketchy Plot
+
+        temprature_value = ValueTracker(3)
+        temprature_value.set_value(3)
         tracking_current = False
+        
         def get_current():
             if not tracking_current:
                 return 0.0
             else:
-                return (0.2 * 0.1) / resistance_value.get_value() # I = V / R
+                return (0.2 * 1.0016) / func(temprature_value.get_value()) # I = V / R
 
         represent_current(get_current, self, wire, left_end, right_end)
 
         wire_label = MathTex("I = \\frac{V}{R}").next_to(wire, LEFT)
 
-        self.play(Create(wire_label))
+        self.play(Write(wire_label))
 
         self.wait()
 
@@ -236,23 +240,79 @@ class CurrentInWire(Scene):
         ax.shift(1.5 * UP)
         labels = ax.get_axis_labels(Text("Temprature").scale(0.4), Text("Resistivity").scale(0.4))
 
-        def func(x):
-            return 1 + (0.4 * x)**2 # Sketchy Plot
-
         graph = ax.plot(func, color=MAROON)
+
+        initial_point = [ax.coords_to_point(temprature_value.get_value(), func(temprature_value.get_value()))]
+        dot = Dot(point=initial_point)
+        dot.add_updater(lambda x: x.move_to(ax.c2p(temprature_value.get_value(), func(temprature_value.get_value()))))
+
+        self.play(Create(ax))
+        self.play(Write(labels))
+        self.play(Create(graph))
+        self.play(Create(dot))
+
+        tracking_current = True
+        self.play(temprature_value.animate.set_value(0.1), run_time=5)
+        self.play(temprature_value.animate.set_value(3), run_time=5)
+
+        self.wait()
+
+
+class CurrentInSuperconductor(Scene):
+    def construct(self):
+        scene_label = Text("Super Conductor").shift(3.5 * DOWN)
+
+        self.play(Write(scene_label))
+
+        length = 8  
+        wire = Line(length/2 * LEFT, length/2 * RIGHT)
+
+        wire_loop = Circle(radius=0.7, color=WHITE).shift(1.75 * DOWN)
+
+        self.play(Create(wire))
+
+        self.wait()
+
+        self.play(Transform(wire, wire_loop))
+
+        self.wait()
+
+        resistance_value = ValueTracker(3)
+        resistance_value.set_value(3)
+        tracking_current = False
+
+        dot = Dot(color=BLUE).move_to(wire_loop.get_center() + wire_loop.radius * UP)
+
+        self.play(Create(dot))
+
+        self.wait()
+
+
+        ax = Axes(
+            x_range=[0, 3, 0.5], y_range=[0, 3, 0.5], x_length=5, y_length=3, axis_config={"include_tip": False}
+        ) 
+
+        ax.shift(1.5 * UP)
+        labels = ax.get_axis_labels(Text("Temprature").scale(0.4), Text("Resistivity").scale(0.4))
+
+        def func(x):
+            return 1.5 + (0.4 * x)**3 # Sketchy Plot
+
+        nonlinear_graph_section = ax.plot(func, color=GOLD, x_range=[0.5, 3])
+
+        t_label = ax.get_T_label(x_val=0.5, graph=nonlinear_graph_section, line_color=GOLD, label=Tex("$T_{C}$"))
+
+        linear_graph_section = ax.plot(lambda x: 0.001, color=GOLD, x_range=[0, 0.5])
 
         initial_point = [ax.coords_to_point(resistance_value.get_value(), func(resistance_value.get_value()))]
         dot = Dot(point=initial_point)
         dot.add_updater(lambda x: x.move_to(ax.c2p(resistance_value.get_value(), func(resistance_value.get_value()))))
 
         self.play(Create(ax))
-        self.play(Create(labels))
-        self.play(Create(graph))
+        self.play(Write(labels))
+        self.play(Create(nonlinear_graph_section))
+        self.play(Create(t_label))
+        self.play(Create(linear_graph_section))
         self.play(Create(dot))
 
-        tracking_current = True
-        self.play(resistance_value.animate.set_value(0.1), run_time=5)
-
-        # self.wait()
-
-        self.play(resistance_value.animate.set_value(3), run_time=5)
+        self.wait()

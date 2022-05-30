@@ -401,13 +401,13 @@ class ProtonLattice(Scene):
         self.wait()
 
         first_electron, first_electron_animation_group = make_electron()
-        first_electron.move_to(((proton_lattice_width-1)/2 * proton_lattice_spacing + proton_lattice_spacing) * LEFT + 0.5 * DOWN)
+        first_electron.move_to(((proton_lattice_width-1)/2.0 * proton_lattice_spacing + 1.25) * LEFT + 0.5 * DOWN)
         
         self.play(first_electron_animation_group)
 
         self.wait()
 
-        self.play(first_electron.animate.shift(8.25 * RIGHT), run_time=2)
+        self.play(first_electron.animate.shift(8.0 * RIGHT), run_time=2)
 
         self.wait()
 
@@ -435,18 +435,26 @@ class ProtonLattice(Scene):
         self.wait()
         
         second_electron, second_electron_animation_group = make_electron()
-        second_electron.move_to(((proton_lattice_width-1)/2 * proton_lattice_spacing + proton_lattice_spacing) * LEFT + 0.5 * DOWN)
+        second_electron.move_to(((proton_lattice_width-1)/2.0 * proton_lattice_spacing + 1.25) * LEFT + 0.5 * DOWN)
 
         self.play(second_electron_animation_group)
 
         self.wait()
 
-        self.play(second_electron.animate.shift(6.25 * RIGHT))
+        self.play(second_electron.animate.shift(6.0 * RIGHT))
 
         self.wait()
 
         self.play(Create(Line(first_electron.get_center(), second_electron.get_center(), color=BLUE).set_z_index(first_electron.z_index - 1)))
 
         self.play(Write(Text("Cooper Pair", color=BLUE).scale(0.5).next_to(second_electron, 0.75 * LEFT)))
+
+        self.wait()
+
+class ElectronPairs(Scene):
+    def construct(self):
+        scene_label = Text("Electron Pairs").shift(3.25 * UP)
+
+        self.play(Write(scene_label))
 
         self.wait()

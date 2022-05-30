@@ -346,3 +346,107 @@ class CurrentInSuperconductor(Scene):
         self.play(temprature_value.animate.set_value(3), run_time=5)
 
         self.wait()
+
+def make_proton():
+    proton = Circle(radius=0.3, color=RED, fill_opacity=0.5)
+    proton_label = Text("+")
+
+    proton_animation_group = AnimationGroup(
+        Create(proton),
+        Write(proton_label)
+    )
+
+    return VGroup(proton, proton_label), proton_animation_group
+
+def make_electron():
+    proton = Circle(radius=0.2, color=GOLD, fill_opacity=0.5)
+    proton_label = Text("-")
+
+    proton_animation_group = AnimationGroup(
+        Create(proton),
+        Write(proton_label)
+    )
+    
+    return VGroup(proton, proton_label), proton_animation_group
+
+class ProtonLattice(Scene):
+    def construct(self):
+        scene_label = Text("Super Conductor Proton Lattice").shift(3.25 * UP)
+
+        self.play(Write(scene_label))
+
+        self.wait()
+
+        proton_lattice_width = 8
+        proton_lattice_height = 4
+
+        proton_lattice_spacing = 1.5
+
+        protons = np.empty((proton_lattice_width, proton_lattice_height), dtype=VGroup)
+        proton_group = VGroup()
+        for i in range(proton_lattice_height):
+            for j in range(proton_lattice_width):
+                proton, proton_animation_group = make_proton()
+                proton.move_to(    
+                    ((-(proton_lattice_width-1) * proton_lattice_spacing/2.0) + proton_lattice_spacing * j) * RIGHT + 
+                    ((-(proton_lattice_height-1) * proton_lattice_spacing/2.0) + proton_lattice_spacing * i) * UP
+                )
+                proton_group.add(proton)
+                protons[j, i] = proton
+
+        proton_group.shift(0.5 * DOWN)
+
+        self.play(FadeIn(proton_group))
+
+        self.wait()
+
+        first_electron, first_electron_animation_group = make_electron()
+        first_electron.move_to(((proton_lattice_width-1)/2 * proton_lattice_spacing + proton_lattice_spacing) * LEFT + 0.5 * DOWN)
+        
+        self.play(first_electron_animation_group)
+
+        self.wait()
+
+        self.play(first_electron.animate.shift(8.25 * RIGHT), run_time=2)
+
+        self.wait()
+
+        # Move all 4 protons in
+        # 42, 52
+        # 41, 51
+        proton_shift_spacing = 0.15
+
+        proton_influence_circle = Circle(radius=1.5, color=RED, fill_opacity=0.1).move_to(first_electron.get_center())
+
+        proton_move_in = AnimationGroup(
+            protons[4, 1].animate.shift(proton_shift_spacing * RIGHT + proton_shift_spacing * UP),
+            protons[4, 2].animate.shift(proton_shift_spacing * RIGHT + proton_shift_spacing * DOWN),
+            protons[5, 1].animate.shift(proton_shift_spacing * LEFT + proton_shift_spacing * UP),
+            protons[5, 2].animate.shift(proton_shift_spacing * LEFT + proton_shift_spacing * DOWN),
+            Create(Arrow(protons[4, 1].get_center(), proton_influence_circle.get_center(), color=RED)),
+            Create(Arrow(protons[4, 2].get_center(), proton_influence_circle.get_center(), color=RED)),
+            Create(Arrow(protons[5, 1].get_center(), proton_influence_circle.get_center(), color=RED)),
+            Create(Arrow(protons[5, 2].get_center(), proton_influence_circle.get_center(), color=RED)),
+            Create(proton_influence_circle),
+        )
+
+        self.play(proton_move_in)
+
+        self.wait()
+        
+        second_electron, second_electron_animation_group = make_electron()
+        second_electron.move_to(((proton_lattice_width-1)/2 * proton_lattice_spacing + proton_lattice_spacing) * LEFT + 0.5 * DOWN)
+
+        self.play(second_electron_animation_group)
+
+        self.wait()
+
+        self.play(second_electron.animate.shift(6.25 * RIGHT))
+
+        self.wait()
+
+        self.play(Create(Line(first_electron.get_center(), second_electron.get_center(), color=BLUE).set_z_index(first_electron.z_index - 1)))
+
+        self.play(Write(Text("Cooper Pair", color=BLUE).scale(0.5).next_to(second_electron, 0.75 * LEFT)))
+
+        self.wait()

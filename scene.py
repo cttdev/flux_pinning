@@ -359,15 +359,15 @@ def make_proton():
     return VGroup(proton, proton_label), proton_animation_group
 
 def make_electron():
-    proton = Circle(radius=0.2, color=GOLD, fill_opacity=0.5)
-    proton_label = Text("-")
+    electron = Circle(radius=0.2, color=GOLD, fill_opacity=0.5)
+    electron_label = Text("-")
 
-    proton_animation_group = AnimationGroup(
-        Create(proton),
-        Write(proton_label)
+    electron_animation_group = AnimationGroup(
+        Create(electron),
+        Write(electron_label)
     )
     
-    return VGroup(proton, proton_label), proton_animation_group
+    return VGroup(electron, electron_label), electron_animation_group
 
 class ProtonLattice(Scene):
     def construct(self):
@@ -453,8 +453,11 @@ class ProtonLattice(Scene):
 
 class ElectronPairs(Scene):
     def construct(self):
-        scene_label = Text("Electron Pairs").shift(3.25 * UP)
+        # scene_label = Text("Electron Pairs").shift(3.25 * UP)
 
-        self.play(Write(scene_label))
+        # self.play(Write(scene_label))
 
-        self.wait()
+        # self.wait()
+
+        first_electron = Circle(radius=1, color=GOLD, fill_opacity=0.5).move_to(2 * LEFT)
+        second_electron = Circle(radius=1, color=GOLD, fill_opacity=0.5).move_to(2 * RIGHT)

@@ -1,4 +1,5 @@
 from manim import *
+from scipy.fftpack import shift
 
 
 def get_force_field_func(*point_strength_pairs, **kwargs):
@@ -453,11 +454,201 @@ class ProtonLattice(Scene):
 
 class ElectronPairs(Scene):
     def construct(self):
-        # scene_label = Text("Electron Pairs").shift(3.25 * UP)
+        scene_label = Text("Net Spin in Electron Pairs").shift(3.25 * UP)
 
-        # self.play(Write(scene_label))
+        self.play(Write(scene_label))
 
-        # self.wait()
+        self.wait()
 
-        first_electron = Circle(radius=1, color=GOLD, fill_opacity=0.5).move_to(2 * LEFT)
-        second_electron = Circle(radius=1, color=GOLD, fill_opacity=0.5).move_to(2 * RIGHT)
+        first_electron = Circle(radius=1, color=GOLD, fill_opacity=0.5).move_to(2 * LEFT + 0.5 * DOWN)
+        first_electron_label = MathTex("\\pm \\frac{1}{2}").move_to(first_electron.get_center())
+
+        second_electron = Circle(radius=1, color=GOLD, fill_opacity=0.5).move_to(2 * RIGHT + 0.5 * DOWN)
+        second_electron_label = MathTex("\\pm \\frac{1}{2}").move_to(second_electron.get_center())
+
+        electron_creation_animation_group = AnimationGroup(
+            Create(first_electron),
+            Create(second_electron),
+            Write(first_electron_label),
+            Write(second_electron_label)
+        )
+
+        self.play(electron_creation_animation_group)
+
+        self.wait()
+
+        spin_rectangle = Rectangle(color=BLUE, fill_opacity=0).surround(VGroup(first_electron, second_electron))
+        spin_label = Tex("Net Spin: +0", color=BLUE).next_to(spin_rectangle, LEFT)
+
+        electron_zero_spin_animation_group = AnimationGroup(
+            first_electron_label.animate.become(MathTex("-\\frac{1}{2}").shift(1.5 * LEFT + 0.5 * DOWN)),
+            second_electron_label.animate.become(MathTex("+\\frac{1}{2}").shift(1.5 * RIGHT + 0.5 * DOWN)),
+            first_electron.animate.shift(0.5 * RIGHT),
+            second_electron.animate.shift(0.5 * LEFT),
+            Create(spin_rectangle),
+            Write(spin_label)
+        )
+
+        self.play(electron_zero_spin_animation_group)
+
+        self.wait()
+
+        electron_zero_arrow_spin_animation_group = AnimationGroup(
+            first_electron_label.animate.become(MathTex("\\uparrow").shift(first_electron.get_center())),
+            second_electron_label.animate.become(MathTex("\\downarrow").shift(second_electron.get_center())),
+        )
+
+        self.play(electron_zero_arrow_spin_animation_group)
+
+        self.wait()
+
+        electron_one_spin_animation_group = AnimationGroup(
+            first_electron_label.animate.become(MathTex("\\uparrow").move_to(first_electron.get_center())),
+            second_electron_label.animate.become(MathTex("\\uparrow").move_to(second_electron.get_center())),
+            spin_label.animate.become(Tex("Net Spin: +1", color=BLUE).move_to(spin_label.get_center()))
+        )
+
+        self.play(electron_one_spin_animation_group)
+
+        self.wait()
+
+        electron_neg_one_arrow_spin_animation_group = AnimationGroup(
+            first_electron_label.animate.become(MathTex("\\downarrow").move_to(first_electron.get_center())),
+            second_electron_label.animate.become(MathTex("\\downarrow").move_to(second_electron.get_center())),
+            spin_label.animate.become(Tex("Net Spin: -1", color=BLUE).move_to(spin_label.get_center()))
+        )
+
+        self.play(electron_neg_one_arrow_spin_animation_group)
+
+        self.wait()
+
+
+class ProtonLatticeCooperPair(Scene):
+    def construct(self):
+        scene_label = Text("Cooper Pairs").shift(3.25 * UP)
+
+        self.play(Write(scene_label))
+
+        self.wait()
+
+        proton_lattice_width = 8
+        proton_lattice_height = 4
+
+        proton_lattice_spacing = 1.5
+
+        protons = np.empty((proton_lattice_width, proton_lattice_height), dtype=VGroup)
+        proton_group = VGroup()
+        for i in range(proton_lattice_height):
+            for j in range(proton_lattice_width):
+                proton, proton_animation_group = make_proton()
+                proton.move_to(    
+                    ((-(proton_lattice_width-1) * proton_lattice_spacing/2.0) + proton_lattice_spacing * j) * RIGHT + 
+                    ((-(proton_lattice_height-1) * proton_lattice_spacing/2.0) + proton_lattice_spacing * i) * UP
+                )
+                proton.set_z_index(0)
+                proton_group.add(proton)
+                protons[j, i] = proton
+
+        proton_group.shift(0.5 * DOWN)
+
+        self.play(FadeIn(proton_group))
+
+        self.wait()
+
+        first_electron, first_electron_animation_group = make_electron()
+        first_electron.move_to(((proton_lattice_width-1)/2.0 * proton_lattice_spacing + 1.25) * LEFT + 0.5 * DOWN)
+        first_electron.shift(8.0 * RIGHT)
+        first_electron.set_z_index(500)
+        
+        self.play(first_electron_animation_group)
+
+        # Move all 4 protons in
+        # 42, 52
+        # 41, 51
+        proton_shift_spacing = 0.15
+
+        proton_influence_circle = Circle(radius=1.5, color=RED, fill_opacity=0.1).move_to(first_electron.get_center())
+
+        proton_move_in = AnimationGroup(
+            protons[4, 1].animate.shift(proton_shift_spacing * RIGHT + proton_shift_spacing * UP),
+            protons[4, 2].animate.shift(proton_shift_spacing * RIGHT + proton_shift_spacing * DOWN),
+            protons[5, 1].animate.shift(proton_shift_spacing * LEFT + proton_shift_spacing * UP),
+            protons[5, 2].animate.shift(proton_shift_spacing * LEFT + proton_shift_spacing * DOWN),
+            Create(Arrow(protons[4, 1].get_center(), proton_influence_circle.get_center(), color=RED)),
+            Create(Arrow(protons[4, 2].get_center(), proton_influence_circle.get_center(), color=RED)),
+            Create(Arrow(protons[5, 1].get_center(), proton_influence_circle.get_center(), color=RED)),
+            Create(Arrow(protons[5, 2].get_center(), proton_influence_circle.get_center(), color=RED)),
+            Create(proton_influence_circle),
+        )
+
+        self.play(proton_move_in)
+
+        self.wait()
+        
+        second_electron, second_electron_animation_group = make_electron()
+        second_electron.move_to(((proton_lattice_width-1)/2.0 * proton_lattice_spacing + 1.25) * LEFT + 0.5 * DOWN)
+        first_electron.set_z_index(500)
+
+        self.play(second_electron_animation_group)
+
+        self.wait()
+
+        self.play(second_electron.animate.shift(6.0 * RIGHT))
+
+        self.wait()
+
+        cooper_pair_line = Line(first_electron.get_center(), second_electron.get_center(), color=BLUE).set_z_index(first_electron.z_index - 1)
+        
+        self.play(Create(cooper_pair_line))
+
+        cooper_pair_label = Text("Cooper Pair", color=BLUE).scale(0.5).next_to(second_electron, 0.75 * LEFT)
+
+        self.play(Write(cooper_pair_label))
+
+        self.wait()
+
+        electron_charge_label_to_spin = AnimationGroup(
+            first_electron[1].animate.become(MathTex("\\uparrow").scale(0.5).move_to(first_electron.get_center())),
+            second_electron[1].animate.become(MathTex("\\downarrow").scale(0.5).move_to(second_electron.get_center())),
+        )
+
+        self.play(electron_charge_label_to_spin)
+
+        self.wait()
+
+        second_electron.save_state()
+        cooper_pair_line.save_state()
+        cooper_pair_label.save_state()
+        
+
+        relative_move_position = 2.0 * RIGHT + 0.4 * UP
+        move_cooper_pair = AnimationGroup(
+            second_electron.animate.move_to(second_electron.get_center() + relative_move_position),
+            cooper_pair_line.animate.become(Line(first_electron.get_center(), second_electron.get_center() + relative_move_position, color=BLUE).set_z_index(first_electron.z_index - 1)),
+            cooper_pair_label.animate.become(Text("Cooper Pair", color=BLUE).scale(0.5).move_to(cooper_pair_label.get_center() + relative_move_position))
+        )
+
+        self.play(move_cooper_pair)
+
+        self.wait()
+
+        relative_move_position = 1.25 * RIGHT + 1.25 * UP
+        move_cooper_pair = AnimationGroup(
+            second_electron.animate.move_to(second_electron.get_center() + relative_move_position),
+            cooper_pair_line.animate.become(Line(first_electron.get_center(), second_electron.get_center() + relative_move_position, color=BLUE).set_z_index(first_electron.z_index - 1)),
+            cooper_pair_label.animate.become(Text("Cooper Pair", color=BLUE).scale(0.5).move_to(cooper_pair_label.get_center() + relative_move_position))
+        )
+
+        self.play(move_cooper_pair)
+
+        self.wait()
+            
+        move_cooper_pair = AnimationGroup(
+            second_electron.animate.restore(),
+            cooper_pair_line.animate.restore(),
+            cooper_pair_label.animate.restore()
+        )
+
+        self.play(move_cooper_pair)
+
+        self.wait()

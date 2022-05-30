@@ -1,6 +1,4 @@
 from manim import *
-from scipy.fftpack import shift
-
 
 def get_force_field_func(*point_strength_pairs, **kwargs):
     radius = kwargs.get("radius", 0.5)
@@ -632,7 +630,7 @@ class ProtonLatticeCooperPair(Scene):
 
         self.wait()
 
-        relative_move_position = 1.25 * RIGHT + 1.25 * UP
+        relative_move_position = 1.3 * RIGHT + 1.3 * UP
         move_cooper_pair = AnimationGroup(
             second_electron.animate.move_to(second_electron.get_center() + relative_move_position),
             cooper_pair_line.animate.become(Line(first_electron.get_center(), second_electron.get_center() + relative_move_position, color=BLUE).set_z_index(first_electron.z_index - 1)),

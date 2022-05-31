@@ -126,7 +126,7 @@ class Repulsion(Scene):
 
         self.play(FadeIn(vector_field))
 
-        self.wait()
+        self.wait(duration=10)
 
         func = get_force_field_func(
             (3 * LEFT, -1), (5 * LEFT, +1),
@@ -154,7 +154,38 @@ class Repulsion(Scene):
 
         self.play(stick_bar_magnet)
 
+        self.wait(duration=2)
+
+
+        func = get_force_field_func(
+            (1 * LEFT, -1), (3 * LEFT, +1),
+            (1 * RIGHT, -1), (3 * RIGHT, +1)
+        )
+
+        flip_bar_magnet = AnimationGroup(
+            Rotate(bar_magnet_two, PI),
+            vector_field.animate.become(ArrowVectorField(func))
+        )
+
+        self.play(flip_bar_magnet)
+
         self.wait()
+
+        func = get_force_field_func(
+            (3 * LEFT, -1), (5 * LEFT, +1),
+            (3 * RIGHT, -1), (5 * RIGHT, +1)
+        )
+
+        unstick_bar_magnet = AnimationGroup(
+            bar_magnet_one.animate.shift(2 * LEFT),
+            bar_magnet_two.animate.shift(2 * RIGHT),
+            vector_field.animate.become(ArrowVectorField(func))
+        )
+
+        self.play(unstick_bar_magnet)
+
+        self.wait()
+
 
 def represent_current(current_value, scene, wire: Line, left_end: Dot, right_end: Dot):
     number_of_current_dots = 10

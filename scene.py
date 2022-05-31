@@ -651,29 +651,6 @@ class ProtonLatticeCooperPair(Scene):
 
         self.wait()
 
-def fdiv(a, b, zero_over_zero_value=None):
-    if zero_over_zero_value is not None:
-        out = np.full_like(a, zero_over_zero_value)
-        where = np.logical_or(a != 0, b != 0)
-    else:
-        out = None
-        where = True
-
-    return np.true_divide(a, b, out=out, where=where)
-
-
-def joukowsky_map(z):
-    if z == 0:
-        return 0
-    return z + (1/z)
-
-def derivative(func, dt=1e-7):
-    return lambda z: (func(z + dt) - func(z)) / dt
-
-def cylinder_flow_vector_field(point):
-    z = R3_to_complex(point)
-    return complex_to_R3(derivative(joukowsky_map)(z).conjugate())
-
 def construct_flow_line_arrow(start, stop, endpoint_value, deviation_point, deviation_value, color=BLUE):
     first_section = CubicBezier(start, start + endpoint_value * UP, deviation_point + deviation_value * DOWN, deviation_point, color=color)
     second_section = CubicBezier(deviation_point, deviation_point + deviation_value * UP, stop + endpoint_value * DOWN, stop, color=color)

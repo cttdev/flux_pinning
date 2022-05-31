@@ -741,7 +741,6 @@ class MagneticFieldsThroughSuperconductor(Scene):
 
     
         self.play(Transform(magnet_vector_field, flow_line_arrows))
-        arrow_state = 0
 
         self.wait()
 
@@ -792,7 +791,6 @@ class MagneticFieldsThroughSuperconductor(Scene):
         initial_point = [ax.coords_to_point(temprature_value.get_value(), func(temprature_value.get_value()))]
         dot = Dot(point=initial_point)
         def tracker_dot_position(x: Dot):
-            print(ax.p2c(x.get_center())[0])
             if ax.p2c(x.get_center())[0] > 0.5:
                 x.move_to(ax.c2p(temprature_value.get_value(), func(temprature_value.get_value())))
             else:
@@ -813,6 +811,193 @@ class MagneticFieldsThroughSuperconductor(Scene):
         self.play(Transform(magnet_vector_field, flow_line_curvy_arrows))
 
         self.play(temprature_value.animate.set_value(0.1), run_time=2)
+
+        self.play(temprature_value.animate.set_value(0.5 + 1e-6), run_time=2)
+        
+        self.play(Transform(magnet_vector_field, flow_line_arrows))
+        self.play(temprature_value.animate.set_value(3), run_time=5)
+
+        self.wait()
+
+class SuperconductorFluxPinning(Scene):
+    def construct(self):
+        scene_label = Text("Flux Pinning").shift(3.25 * UP)
+
+        self.play(Write(scene_label))
+
+        self.wait()
+
+        self.play(FadeOut(scene_label))
+
+        self.wait()
+
+        magnet_width = 4.0
+        magnet_height = 1.0
+
+        magnet_position = -2.0
+
+        magnet = Rectangle(height=magnet_height - 0.25, width=magnet_width + 0.5, color=GREY, fill_opacity=0.7).move_to(magnet_position * UP).set_z_index(1)
+
+        self.play(Create(magnet))
+
+        self.wait()
+
+        superconductor = Rectangle(height=0.5, width=1.5, color=GOLD, fill_opacity=0.8).move_to((magnet_position + 2) * UP).set_z_index(10)
+
+        self.play(Create(superconductor))
+
+        self.wait()
+
+        magnet_label = Text("Magnet", color=GREY).scale(0.5).next_to(magnet, 0.75 * LEFT)
+        superconductor_label = Text("Superconductor", color=GOLD).scale(0.5).next_to(superconductor, 0.75 * LEFT)
+
+        label_group = AnimationGroup(
+            Write(magnet_label),
+            Write(superconductor_label)
+        )
+
+        self.play(label_group)
+
+        self.wait()
+
+        label_group = AnimationGroup(
+            FadeOut(magnet_label),
+            FadeOut(superconductor_label)
+        )
+
+        self.play(label_group)
+
+        self.wait()
+
+        func = get_force_field_func(
+            (magnet_position * UP + (magnet_height / 2) * UP, +2), (magnet_position * UP + (magnet_height / 2) * DOWN, -2)
+        )
+
+        magnet_vector_field = ArrowVectorField(func).set_z_index(0)
+
+        self.play(FadeIn(magnet_vector_field))
+
+        self.wait()
+
+        flow_line_arrows = VGroup()
+
+        num_of_flow_line_arrows = 9
+        line_spacing = magnet_width / num_of_flow_line_arrows
+        line_length = 3
+
+        def make_straight_arrow(arrow_number):
+            flow_line_arrows.add(
+                construct_flow_line_arrow(
+                    start=(magnet_width/2 - (line_spacing * arrow_number)) * LEFT + (magnet_position + magnet_height/2) * UP,
+                    stop=(magnet_width/2 - (line_spacing * arrow_number)) * LEFT + (magnet_position + magnet_height/2 + line_length) * UP,
+                    endpoint_value=0.5,
+                    deviation_point=(magnet_width/2 - (line_spacing * arrow_number)) * LEFT + (magnet_position + magnet_height/2 + (line_length / 2)) * UP,
+                    deviation_value=0.5
+                )
+            )
+
+        for i in range(num_of_flow_line_arrows + 1):
+            make_straight_arrow(i)
+
+    
+        self.play(Transform(magnet_vector_field, flow_line_arrows))
+
+        self.wait()
+
+        flow_line_curvy_arrows = VGroup()
+
+        def make_curvy_arrow(arrow_number, blocker_ammount, endpoint_value, deviation_value):
+            flow_line_curvy_arrows.add(
+                construct_flow_line_arrow(
+                    start=(magnet_width/2 - (line_spacing * arrow_number)) * LEFT + (magnet_position + magnet_height/2) * UP,
+                    stop=(magnet_width/2 - (line_spacing * arrow_number)) * LEFT + (magnet_position + magnet_height/2 + line_length) * UP,
+                    endpoint_value=endpoint_value,
+                    deviation_point=(magnet_width/2 - (line_spacing * arrow_number) - blocker_ammount) * LEFT + (magnet_position + magnet_height/2 + (line_length / 2)) * UP,
+                    deviation_value=deviation_value
+                )
+            )
+
+        make_curvy_arrow(0, 0, 0.5, 0.5)
+        make_curvy_arrow(1, 0, 0.5, 0.5)
+        make_curvy_arrow(2, 0, 0.5, 0.5)
+
+        make_curvy_arrow(3, line_spacing/2, 0.5, 0.5)
+        make_curvy_arrow(4, -line_spacing/2, 0.5, 0.5)
+        make_curvy_arrow(5, line_spacing/2, 0.5, 0.5)
+        make_curvy_arrow(6, -line_spacing/2, 0.5, 0.5)
+
+        make_curvy_arrow(7, 0, 0.5, 0.5)
+        make_curvy_arrow(8, 0, 0.5, 0.5)
+        make_curvy_arrow(9, 0, 0.5, 0.5)
+
+        temprature_value = ValueTracker(3)
+        temprature_value.set_value(3)
+
+        ax = Axes(
+            x_range=[0, 3, 0.5], y_range=[0, 3, 0.5], x_length=3, y_length=2, axis_config={"include_tip": False}
+        ) 
+
+        ax.shift(2 * UP + 4.5 * RIGHT)
+        labels = ax.get_axis_labels(Text("Temperature").scale(0.4), Text("Resistivity").scale(0.4))
+
+        def func(x):
+            return 1.5 + (0.4 * x)**3 # Sketchy Plot
+
+        nonlinear_graph_section = ax.plot(func, color=GOLD, x_range=[0.5, 3])
+        t_label = ax.get_T_label(x_val=0.5, graph=nonlinear_graph_section, line_color=GOLD, label=Tex("$T_{C}$").scale(0.75))
+        linear_graph_section = ax.plot(lambda x: 0.001, color=GOLD, x_range=[0, 0.5])
+
+        initial_point = [ax.coords_to_point(temprature_value.get_value(), func(temprature_value.get_value()))]
+        dot = Dot(point=initial_point)
+        def tracker_dot_position(x: Dot):
+            if ax.p2c(x.get_center())[0] > 0.5:
+                x.move_to(ax.c2p(temprature_value.get_value(), func(temprature_value.get_value())))
+            else:
+                x.move_to(ax.c2p(temprature_value.get_value(), 0.001))
+
+        dot.add_updater(tracker_dot_position)
+
+        self.play(Create(ax))
+        self.play(Write(labels))
+        self.play(Create(nonlinear_graph_section))
+        self.play(Create(t_label))
+        self.play(Create(linear_graph_section))
+        self.play(Create(dot))
+
+        self.wait()
+
+        self.play(temprature_value.animate.set_value(0.5 - 1e-6), run_time=5)
+        self.play(Transform(magnet_vector_field, flow_line_curvy_arrows))
+
+        self.play(temprature_value.animate.set_value(0.1), run_time=2)
+
+        self.wait()
+
+        first_flux_tube = Rectangle(height=0.5, width=0.2, color=RED, fill_opacity=0.5).move_to((magnet_width/2 - (line_spacing * 3) - line_spacing/2) * LEFT + (magnet_position + 2) * UP).set_z_index(15)
+        second_flux_tube = Rectangle(height=0.5, width=0.2, color=RED, fill_opacity=0.5).move_to((magnet_width/2 - (line_spacing * 5) - line_spacing/2) * LEFT + (magnet_position + 2) * UP).set_z_index(15)
+        
+        create_flux_tubes = AnimationGroup(
+            Create(first_flux_tube),
+            Create(second_flux_tube)
+        )
+
+        self.play(create_flux_tubes)
+
+        flux_tube_label = Text("Flux Tubes", color=RED).scale(0.5).next_to(first_flux_tube, 1.25 * LEFT)
+
+        self.play(Write(flux_tube_label))
+
+        self.wait()
+
+        flux_tube_fade_out = AnimationGroup(
+            FadeOut(first_flux_tube),
+            FadeOut(second_flux_tube),
+            FadeOut(flux_tube_label),
+        )
+
+        self.play(flux_tube_fade_out)
+
+        self.wait()
 
         self.play(temprature_value.animate.set_value(0.5 + 1e-6), run_time=2)
         
